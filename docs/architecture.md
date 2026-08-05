@@ -5,7 +5,8 @@ Pulseguard uses one Worker for the web app, API, scheduled checks, and inbound e
 ```mermaid
 flowchart LR
   S["Expected sender"] -->|daily email| ER["Cloudflare Email Routing"]
-  ER --> W["Pulseguard Worker"]
+  ER["AWS SES receipt rule"] --> L["Lambda metadata forwarder"]
+  L --> W["Pulseguard Worker"]
   API["Heartbeat API"] --> W
   C["Cron every 5 minutes"] --> W
   W <--> D[("D1")]

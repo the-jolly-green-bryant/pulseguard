@@ -49,16 +49,19 @@ npm run deploy
 
 Wrangler publishes the React assets and Worker together, attaches D1, and creates the five-minute cron trigger.
 
-## 5. Connect inbound email
+## 5. Connect inbound email with AWS SES
 
-In Cloudflare Dashboard:
+Pulseguard accepts signed metadata from the small Lambda in `infra/aws-ses-forwarder`. Configure SES in a region that supports email receiving, verify the monitoring subdomain, and add its MX record:
 
-1. Open **Email > Email Routing** for your domain and enable routing.
-2. Open **Email Workers** and connect the deployed `pulseguard` Worker.
-3. Add a route such as `*@watch.example.com` to the Worker.
-4. Use a unique address for each monitor, such as `revenue@watch.example.com`.
+1. Verify `pulseguard.example.com` as an SES identity.
+2. Add `MX 10 inbound-smtp.<region>.amazonaws.com` for the subdomain.
+3. Create a Lambda from `infra/aws-ses-forwarder/index.mjs`.
+4. Set its `PULSEGUARD_WEBHOOK_URL` and `PULSEGUARD_WEBHOOK_SECRET` environment variables.
+5. Add a matching `SES_WEBHOOK_SECRET` Worker secret.
+6. Create an active SES receipt rule for the subdomain with the Lambda action.
+7. Use a unique address for every monitor, such as `revenue@pulseguard.example.com`.
 
-Cloudflare requires a domain for Email Routing; a `workers.dev` address cannot receive mail.
+The Lambda forwards envelope metadata only; email bodies and attachments are not stored.
 
 ## 6. Create a monitor
 

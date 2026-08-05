@@ -2,6 +2,11 @@ export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
   ADMIN_API_KEY: string;
+  SES_WEBHOOK_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  SESSION_SECRET?: string;
+  ALLOWED_GOOGLE_EMAILS?: string;
   RESEND_API_KEY?: string;
   ALERT_FROM_EMAIL?: string;
   TWILIO_ACCOUNT_SID?: string;

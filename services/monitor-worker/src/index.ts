@@ -1,4 +1,5 @@
 import { deliverAlerts } from "./alerts";
+import { finishGoogleLogin, getSession, logout, startGoogleLogin } from "./auth";
 import { isOverdue, normalizeAddress, safeEqual, utcDayKey } from "./domain";
 import type { EmailMessage, Env, ExecutionContext, Monitor, Recipient } from "./types";
 
@@ -10,7 +11,14 @@ export default {
     if (request.method === "GET" && url.pathname === "/health") {
       return Response.json({ ok: true, service: "pulseguard-monitor" });
     }
-    if (!isAuthorized(request, env)) return Response.json({ error: "unauthorized" }, { status: 401 });
+    if (request.method === "GET" && url.pathname === "/auth/google") return startGoogleLogin(request, env);
+    if (request.method === "GET" && url.pathname === "/auth/google/callback") return finishGoogleLogin(request, env);
+    if (request.method === "GET" && url.pathname === "/auth/logout") return logout();
+    if (request.method === "GET" && url.pathname === "/api/session") return Response.json({ user: await getSession(request, env) });
+    if (request.method === "POST" && url.pathname === "/hooks/aws-ses") {
+      return receiveSesEvent(request, env);
+    }
+    if (!(await isAuthorized(request, env))) return Response.json({ error: "unauthorized" }, { status: 401 });
 
     if (request.method === "POST" && url.pathname === "/v1/monitors") {
       return createMonitor(request, env);
@@ -73,11 +81,32 @@ async function createMonitor(request: Request, env: Env): Promise<Response> {
   return new Response(JSON.stringify({ id }), { status: 201, headers: jsonHeaders });
 }
 
+async function receiveSesEvent(request: Request, env: Env): Promise<Response> {
+  const supplied = request.headers.get("x-pulseguard-secret") ?? "";
+  if (!env.SES_WEBHOOK_SECRET || !safeEqual(supplied, env.SES_WEBHOOK_SECRET)) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const input = await request.json<{ recipient?: string; sender?: string; messageId?: string }>();
+  if (!input.recipient || !input.sender) {
+    return Response.json({ error: "recipient and sender are required" }, { status: 400 });
+  }
+  const monitor = await env.DB.prepare(
+    "SELECT id FROM monitors WHERE inbox_address = ? AND enabled = 1 LIMIT 1",
+  ).bind(normalizeAddress(input.recipient)).first<{ id: string }>();
+  if (!monitor) return Response.json({ error: "monitor_not_found" }, { status: 404 });
+  await recordReceipt(env, monitor.id, input.sender, input.messageId ?? null);
+  return Response.json({ ok: true });
+}
+
 async function listMonitors(env: Env): Promise<Response> {
   const result = await env.DB.prepare(
     "SELECT id, name, inbox_address AS inboxAddress, schedule_hour_utc AS scheduleHourUtc, grace_minutes AS graceMinutes, enabled, last_received_at AS lastReceivedAt FROM monitors ORDER BY created_at DESC",
   ).all();
-  return Response.json({ monitors: result.results });
+  const monitors = await Promise.all(result.results.map(async (monitor) => {
+    const recipients = await env.DB.prepare("SELECT channel, destination FROM recipients WHERE monitor_id = ? AND enabled = 1 ORDER BY created_at").bind(String(monitor.id)).all();
+    return { ...monitor, recipients: recipients.results };
+  }));
+  return Response.json({ monitors });
 }
 
 async function recordHeartbeat(env: Env, monitorId: string): Promise<Response> {
@@ -120,7 +149,7 @@ async function checkAllMonitors(env: Env, now: Date): Promise<void> {
   }
 }
 
-function isAuthorized(request: Request, env: Env): boolean {
+async function isAuthorized(request: Request, env: Env): Promise<boolean> {
   const value = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  return Boolean(env.ADMIN_API_KEY) && safeEqual(value, env.ADMIN_API_KEY);
+  return (Boolean(env.ADMIN_API_KEY) && safeEqual(value, env.ADMIN_API_KEY)) || Boolean(await getSession(request, env));
 }
