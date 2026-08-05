@@ -7,6 +7,7 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   SESSION_SECRET?: string;
+  TOKEN_ENCRYPTION_KEY?: string;
   ALLOWED_GOOGLE_EMAILS?: string;
   RESEND_API_KEY?: string;
   ALERT_FROM_EMAIL?: string;
@@ -23,6 +24,10 @@ export type Monitor = {
   graceMinutes: number;
   enabled: number;
   lastReceivedAt: string | null;
+  monitorType?: "gmail" | "inbox";
+  ownerEmail?: string | null;
+  senderFilter?: string | null;
+  subjectFilter?: string | null;
 };
 
 export type Recipient = {

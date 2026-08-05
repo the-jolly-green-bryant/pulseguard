@@ -15,6 +15,7 @@ flowchart LR
   R --> E["Email recipients"]
   T --> P["Phone recipients"]
   B["React dashboard"] --> W
+  W -->|"read-only metadata search"| G["Gmail API"]
 ```
 
 ## Data flow
@@ -24,6 +25,8 @@ flowchart LR
 3. Every five minutes, the scheduled handler loads enabled monitors and evaluates their UTC deadline plus grace period.
 4. For an overdue monitor, the Worker claims a deterministic `monitor_id:day` alert-run ID. D1's unique constraint prevents duplicate fan-out across overlapping cron invocations.
 5. Email and SMS recipients are delivered independently. The result of every recipient attempt is stored on the alert run.
+
+For Gmail monitors, the scheduled Worker refreshes the user's OAuth token, searches Gmail by sender, subject, and current date, and records the matching Gmail message ID as the heartbeat. Refresh tokens are AES-GCM encrypted before storage; bodies and attachments are never requested.
 
 ## Tables
 

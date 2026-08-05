@@ -4,7 +4,7 @@
 
 [Live demo](https://pulseguard.bluezephyrapps.workers.dev) · [Architecture](docs/architecture.md) · [Deployment guide](docs/deployment.md)
 
-Pulseguard is a small, serverless anomaly-detection platform for expected email. Give a daily report a private inbox and a deadline. If that message does not arrive, Pulseguard alerts every subscribed email address and, optionally, every subscribed phone number.
+Pulseguard is a small, serverless anomaly-detection platform for expected email. Define a Gmail sender, subject rule, and deadline. If that message does not arrive, Pulseguard alerts every subscribed email address and, optionally, every subscribed phone number. An AWS SES inbox remains available for non-Gmail sources.
 
 The dashboard is a React product demo. The Worker, database schema, scheduled checks, inbound-email handler, alert fan-out, and provider integrations are production code.
 
@@ -14,7 +14,8 @@ Most monitoring tools react to events. Pulseguard reacts to an event that **did 
 
 ## Features
 
-- Cloudflare Email Routing ingestion—free with a domain on Cloudflare
+- Direct Gmail monitoring through the read-only Gmail API
+- AWS SES ingestion fallback for non-Gmail systems
 - Scheduled checks every five minutes
 - Multiple email and SMS recipients per monitor
 - Resend email alerts and optional Twilio SMS

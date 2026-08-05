@@ -1,4 +1,5 @@
 import type { Env } from "./types";
+import { storeGoogleRefreshToken } from "./gmail";
 
 export type SessionUser = { email: string; name: string; picture?: string; exp: number };
 
@@ -13,9 +14,12 @@ export async function startGoogleLogin(request: Request, env: Env): Promise<Resp
     client_id: env.GOOGLE_CLIENT_ID!,
     redirect_uri: callbackUrl(request),
     response_type: "code",
-    scope: "openid email profile",
+    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
     state,
-    prompt: "select_account",
+    prompt: "consent",
+    access_type: "offline",
+    include_granted_scopes: "true",
+    login_hint: "bryant@bryantjames.com",
   }).toString();
   return new Response(null, {
     status: 302,
@@ -42,7 +46,7 @@ export async function finishGoogleLogin(request: Request, env: Env): Promise<Res
     }),
   });
   if (!tokenResponse.ok) return textError("Google token exchange failed", 401);
-  const tokens = await tokenResponse.json<{ id_token?: string }>();
+  const tokens = await tokenResponse.json<{ id_token?: string; refresh_token?: string }>();
   if (!tokens.id_token) return textError("Google did not return an identity token", 401);
   const profileResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokens.id_token)}`);
   if (!profileResponse.ok) return textError("Google identity verification failed", 401);
@@ -51,6 +55,7 @@ export async function finishGoogleLogin(request: Request, env: Env): Promise<Res
 
   const allowlist = (env.ALLOWED_GOOGLE_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
   if (allowlist.length && !allowlist.includes(profile.email.toLowerCase())) return textError("This Google account is not allowed", 403);
+  if (tokens.refresh_token) await storeGoogleRefreshToken(env, profile.email, tokens.refresh_token);
   const session: SessionUser = { email: profile.email, name: profile.name ?? profile.email, picture: profile.picture, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 };
   const token = await signSession(session, env.SESSION_SECRET!);
   return new Response(null, { status: 302, headers: { location: "/", "set-cookie": cookie(sessionCookie, token, 60 * 60 * 24 * 7) } });
@@ -73,7 +78,7 @@ export function logout(): Response {
 }
 
 function requireGoogleConfig(env: Env) {
-  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.SESSION_SECRET) throw new Error("Google OAuth is not configured");
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.SESSION_SECRET || !env.TOKEN_ENCRYPTION_KEY) throw new Error("Google OAuth is not configured");
 }
 function callbackUrl(request: Request) { return `${new URL(request.url).origin}/auth/google/callback`; }
 function readCookie(request: Request, name: string) { return request.headers.get("cookie")?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${name}=`))?.slice(name.length + 1) ?? null; }

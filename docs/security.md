@@ -7,6 +7,9 @@
 - Unknown inbound addresses are rejected.
 - The database stores only envelope metadata, not email bodies.
 - Alert runs have database-enforced idempotency.
+- Gmail access uses the least-privilege `gmail.readonly` scope.
+- Google refresh tokens are encrypted with AES-GCM before D1 storage.
+- Gmail searches use metadata criteria; message bodies and attachments are never fetched.
 
 ## Before multi-tenant use
 
