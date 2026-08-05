@@ -1,5 +1,6 @@
 export interface Env {
   DB: D1Database;
+  ASSETS: Fetcher;
   ADMIN_API_KEY: string;
   RESEND_API_KEY?: string;
   ALERT_FROM_EMAIL?: string;

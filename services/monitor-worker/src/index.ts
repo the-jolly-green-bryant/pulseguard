@@ -22,7 +22,7 @@ export default {
     if (request.method === "POST" && heartbeatMatch) {
       return recordHeartbeat(env, heartbeatMatch[1]);
     }
-    return Response.json({ error: "not_found" }, { status: 404 });
+    return env.ASSETS.fetch(request);
   },
 
   async email(message: EmailMessage, env: Env): Promise<void> {
