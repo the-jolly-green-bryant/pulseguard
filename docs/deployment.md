@@ -31,6 +31,16 @@ npx wrangler secret put RESEND_API_KEY
 npx wrangler secret put ALERT_FROM_EMAIL
 ```
 
+For Google login, create a Web OAuth client with origin `https://pulseguard.example.com` and callback `https://pulseguard.example.com/auth/google/callback`, then set:
+
+```bash
+npx wrangler secret put GOOGLE_CLIENT_ID
+npx wrangler secret put GOOGLE_CLIENT_SECRET
+npx wrangler secret put SESSION_SECRET
+```
+
+Use a random 32-byte value for `SESSION_SECRET` and set `ALLOWED_GOOGLE_EMAILS` in `wrangler.jsonc` to a comma-separated operator allowlist.
+
 For SMS, add all three values:
 
 ```bash
