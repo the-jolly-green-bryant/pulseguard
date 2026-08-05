@@ -31,7 +31,7 @@ Most monitoring tools react to events. Pulseguard reacts to an event that **did 
 | UI + API + cron | Cloudflare Workers | Free tier |
 | State | Cloudflare D1 | Free tier |
 | Inbound email | Cloudflare Email Routing | Free |
-| Alert email | Resend | Free tier |
+| Alert email | AWS SES | Usage-based; negligible at personal volume |
 | SMS | Twilio | Trial credit, then usage-based |
 
 Production SMS is not sustainably free: carriers charge termination fees. Pulseguard keeps SMS optional and sends email alerts independently, so the core product can remain free. See [costs and tradeoffs](docs/costs.md).

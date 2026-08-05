@@ -3,6 +3,7 @@ export interface Env {
   ASSETS: Fetcher;
   ADMIN_API_KEY: string;
   SES_WEBHOOK_SECRET?: string;
+  AWS_SES_ALERT_URL?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   SESSION_SECRET?: string;

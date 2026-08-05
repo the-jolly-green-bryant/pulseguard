@@ -28,6 +28,15 @@ async function deliver(env: Env, monitor: Monitor, recipient: Recipient): Promis
 }
 
 async function sendEmail(env: Env, monitor: Monitor, to: string): Promise<void> {
+  if (env.AWS_SES_ALERT_URL && env.SES_WEBHOOK_SECRET) {
+    const response = await fetch(env.AWS_SES_ALERT_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-pulseguard-secret": env.SES_WEBHOOK_SECRET },
+      body: JSON.stringify({ to, subject: `Missing email: ${monitor.name}`, text: `Pulseguard did not receive “${monitor.name}” by its expected deadline. Check the source system and delivery path.` }),
+    });
+    if (!response.ok) throw new Error(`AWS SES alert service returned ${response.status}`);
+    return;
+  }
   if (!env.RESEND_API_KEY || !env.ALERT_FROM_EMAIL) {
     throw new Error("email provider is not configured");
   }

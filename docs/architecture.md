@@ -10,7 +10,7 @@ flowchart LR
   API["Heartbeat API"] --> W
   C["Cron every 5 minutes"] --> W
   W <--> D[("D1")]
-  W --> R["Resend"]
+  W --> R["AWS SES alert Lambda"]
   W --> T["Twilio (optional)"]
   R --> E["Email recipients"]
   T --> P["Phone recipients"]
